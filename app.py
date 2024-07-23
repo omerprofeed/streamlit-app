@@ -17,7 +17,7 @@ def load_sales_data(file):
     sales_df = pd.read_excel(
         file, 
         usecols=['MarketPlace', 'Order Date', 'Status', 'Barcode', 'Product', 'Quantity', 'Amount', 'Discount', 'Price', 'Vat Amount'],
-        dtype={'Barcode': str}
+        dtype={'Barcode': str, 'Quantity': float, 'Amount': float, 'Discount': float, 'Price': float, 'Vat Amount': float}
     )
     return sales_df
 
@@ -41,32 +41,33 @@ if sales_report_file:
 
     # Tarihleri datetime formatına dönüştürme
     sales_df['Order Date'] = pd.to_datetime(sales_df['Order Date'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
+    st.write("Data Types After Date Conversion", sales_df.dtypes)  # Veri tiplerini kontrol etmek için
 
     # Kullanıcıdan tarih aralığı ve pazaryeri seçimini alma
     st.write("## Select Date Range")
-    start_date = st.date_input('Start date', datetime(2024, 7, 1))
-    end_date = st.date_input('End date', datetime(2024, 7, 31))
+    start_date = st.date_input('Start date', datetime(2023, 1, 1))
+    end_date = st.date_input('End date', datetime(2023, 12, 31))
 
     # Tarih aralığı filtrelemesi
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     filtered_df = sales_df[(sales_df['Order Date'] >= start_date) & (sales_df['Order Date'] <= end_date)]
-
-    st.write("Filtered Data Sample", filtered_df.head())  # Filtrelenmiş verilerin doğru olduğunu doğrulamak için
+    st.write("Filtered Data by Date", filtered_df.head())  # Tarih filtrelemesinin doğru olduğunu kontrol etmek için
 
     # Pazaryeri seçimi
     st.write("## Select Marketplaces")
     marketplaces = st.multiselect('Marketplaces', sales_df['MarketPlace'].unique())
     if marketplaces:
         filtered_df = filtered_df[filtered_df['MarketPlace'].isin(marketplaces)]
+        st.write("Filtered Data by Marketplaces", filtered_df.head())  # Pazaryeri filtrelemesinin doğru olduğunu kontrol etmek için
 
     # 'CANCELLED' statüsündeki satırları filtrele
     filtered_df = filtered_df[filtered_df['Status'] != 'CANCELLED']
+    st.write("Filtered Data After Removing Cancelled", filtered_df.head())  # 'CANCELLED' filtrelemesinin doğru olduğunu kontrol etmek için
 
     # Toplam gelir sütunu ekle
     filtered_df['Total Amount'] = filtered_df['Quantity'] * filtered_df['Price']
-
-    st.write("Final Filtered Data Sample", filtered_df.head())  # Son filtrelenmiş verilerin doğru olduğunu doğrulamak için
+    st.write("Data with Total Amount", filtered_df.head())  # Toplam gelir hesaplamasının doğru olduğunu kontrol etmek için
 
     # Pivot tablo oluştur
     pivot_table = filtered_df.pivot_table(index=['MarketPlace', 'Barcode', 'Product', 'Price', 'Category'],
