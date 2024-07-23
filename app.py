@@ -5,11 +5,25 @@ import sqlite3
 from datetime import datetime
 import os
 
+@st.cache
+def load_master_data(db_path):
+    conn = sqlite3.connect(db_path)
+    master_df = pd.read_sql('SELECT * FROM master_data', conn)
+    conn.close()
+    return master_df
+
+@st.cache
+def load_sales_data(file):
+    sales_df = pd.read_excel(
+        file, 
+        usecols=['MarketPlace', 'Order Date', 'Status', 'Barcode', 'Product', 'Quantity', 'Amount', 'Discount', 'Price', 'Vat Amount'],
+        dtype={'Barcode': str}
+    )
+    return sales_df
+
 # SQLite veritabanı bağlantısı
 db_path = os.path.join(os.path.dirname(__file__), 'master_data.db')
-conn = sqlite3.connect(db_path)
-master_df = pd.read_sql('SELECT * FROM master_data', conn)
-conn.close()
+master_df = load_master_data(db_path)
 
 # Streamlit başlığı
 st.title('Sales Report Analysis')
@@ -18,12 +32,7 @@ st.title('Sales Report Analysis')
 sales_report_file = st.file_uploader("Upload Sales Report Excel File", type="xlsx")
 
 if sales_report_file:
-    # Yalnızca gerekli sütunları yükleyin
-    sales_df = pd.read_excel(
-        sales_report_file, 
-        usecols=['MarketPlace', 'Order Date', 'Status', 'Barcode', 'Product', 'Quantity', 'Amount', 'Discount', 'Price', 'Vat Amount'],
-        dtype={'Barcode': str}
-    )
+    sales_df = load_sales_data(sales_report_file)
 
     # Veritabanı ile birleştirme
     sales_df = pd.merge(sales_df, master_df[['Barcode', 'Category']], on='Barcode', how='left')
