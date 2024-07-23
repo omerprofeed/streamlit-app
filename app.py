@@ -3,9 +3,11 @@ import pandas as pd
 import plotly.express as px
 import sqlite3
 from datetime import datetime
+import os
 
 # SQLite veritabanı bağlantısı
-conn = sqlite3.connect('master_data.db')
+db_path = os.path.join(os.path.dirname(__file__), 'master_data.db')
+conn = sqlite3.connect(db_path)
 master_df = pd.read_sql('SELECT * FROM master_data', conn)
 conn.close()
 
