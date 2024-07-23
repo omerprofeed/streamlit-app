@@ -5,11 +5,25 @@ import sqlite3
 from datetime import datetime
 import os
 
+@st.cache
+def load_master_data(db_path):
+    conn = sqlite3.connect(db_path)
+    master_df = pd.read_sql('SELECT * FROM master_data', conn)
+    conn.close()
+    return master_df
+
+@st.cache
+def load_sales_data(file):
+    sales_df = pd.read_excel(
+        file, 
+        usecols=['MarketPlace', 'Order Date', 'Status', 'Barcode', 'Product', 'Quantity', 'Amount', 'Discount', 'Price', 'Vat Amount'],
+        dtype={'Barcode': str}
+    )
+    return sales_df
+
 # SQLite veritabanı bağlantısı
 db_path = os.path.join(os.path.dirname(__file__), 'master_data.db')
-conn = sqlite3.connect(db_path)
-master_df = pd.read_sql('SELECT * FROM master_data', conn)
-conn.close()
+master_df = load_master_data(db_path)
 
 # Streamlit başlığı
 st.title('Sales Report Analysis')
@@ -18,28 +32,27 @@ st.title('Sales Report Analysis')
 sales_report_file = st.file_uploader("Upload Sales Report Excel File", type="xlsx")
 
 if sales_report_file:
-    # Yalnızca gerekli sütunları yükleyin
-    sales_df = pd.read_excel(
-        sales_report_file, 
-        usecols=['MarketPlace', 'Order Date', 'Status', 'Barcode', 'Product', 'Quantity', 'Amount', 'Discount', 'Price', 'Vat Amount'],
-        dtype={'Barcode': str}
-    )
+    sales_df = load_sales_data(sales_report_file)
+    st.write("Sales Data Sample", sales_df.head())  # Verilerin doğru yüklendiğini doğrulamak için
 
     # Veritabanı ile birleştirme
     sales_df = pd.merge(sales_df, master_df[['Barcode', 'Category']], on='Barcode', how='left')
+    st.write("Merged Data Sample", sales_df.head())  # Birleştirilmiş verilerin doğru olduğunu doğrulamak için
 
     # Tarihleri datetime formatına dönüştürme
     sales_df['Order Date'] = pd.to_datetime(sales_df['Order Date'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
 
     # Kullanıcıdan tarih aralığı ve pazaryeri seçimini alma
     st.write("## Select Date Range")
-    start_date = st.date_input('Start date', datetime(2023, 1, 1))
-    end_date = st.date_input('End date', datetime(2023, 12, 31))
+    start_date = st.date_input('Start date', datetime(2024, 7, 1))
+    end_date = st.date_input('End date', datetime(2024, 7, 31))
 
     # Tarih aralığı filtrelemesi
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     filtered_df = sales_df[(sales_df['Order Date'] >= start_date) & (sales_df['Order Date'] <= end_date)]
+
+    st.write("Filtered Data Sample", filtered_df.head())  # Filtrelenmiş verilerin doğru olduğunu doğrulamak için
 
     # Pazaryeri seçimi
     st.write("## Select Marketplaces")
@@ -52,6 +65,8 @@ if sales_report_file:
 
     # Toplam gelir sütunu ekle
     filtered_df['Total Amount'] = filtered_df['Quantity'] * filtered_df['Price']
+
+    st.write("Final Filtered Data Sample", filtered_df.head())  # Son filtrelenmiş verilerin doğru olduğunu doğrulamak için
 
     # Pivot tablo oluştur
     pivot_table = filtered_df.pivot_table(index=['MarketPlace', 'Barcode', 'Product', 'Price', 'Category'],
