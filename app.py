@@ -45,8 +45,8 @@ if sales_report_file:
 
     # Kullanıcıdan tarih aralığı ve pazaryeri seçimini alma
     st.write("## Select Date Range")
-    start_date = st.date_input('Start date', datetime(2023, 1, 1))
-    end_date = st.date_input('End date', datetime(2023, 12, 31))
+    start_date = st.date_input('Start date', datetime(2024, 7, 1))
+    end_date = st.date_input('End date', datetime(2024, 7, 31))
 
     # Tarih aralığı filtrelemesi
     start_date = pd.to_datetime(start_date)
